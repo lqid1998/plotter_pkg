@@ -1,14 +1,17 @@
+from math import e
+from re import T
 from pymatgen.electronic_structure.core import Orbital, OrbitalType
 from pymatgen.io.vasp.outputs import Vasprun
 from pymatgen.electronic_structure.plotter  import DosPlotter
 import matplotlib.pyplot as plt
+from pymatgen.io.lobster.outputs import Doscar
 from pymatgen.util.plotting import pretty_plot
 from plotter_pkg.plotter_main import creat_dir
 from pymatgen.electronic_structure.core import Spin
 import matplotlib.pyplot as plt
 import numpy as np
 
-def get_plot_ax_func(self, xlim=None, ylim=None,ax=None, color_list=None, color=None,element=None):
+def get_plot_ax_func(self, xlim=None, ylim=None,ax=None, color_list=None, color=None,element=None, label=None):
     """
     Plot the DOS in to an axes object of matplotlib. This method will not plot out the graph.
     
@@ -100,7 +103,9 @@ def get_plot_ax_func(self, xlim=None, ylim=None,ax=None, color_list=None, color=
         elif color_flag is False:
             color=colors[i % ncolors]
         
-        if element_label:
+        if label:
+            label_text= '%s' %label
+        elif element_label:
             label_text='%s-%s' %(element, str(key))
         else:
             label_text=str(key)
@@ -188,7 +193,7 @@ def set_color(orb_list):
 
 def dos(path, s):
    
-    v = Vasprun(path + 'vasprun.xml')
+    v = Vasprun(path + '/vasprun.xml')
     cdos = v.complete_dos
     structure = cdos.structure.sites
 
@@ -219,7 +224,7 @@ def dos(path, s):
 
 def d_orbs_dos(path, s):
    
-    v = Vasprun(path + 'vasprun.xml')
+    v = Vasprun(path + '/vasprun.xml')
     cdos = v.complete_dos
     structure = cdos.structure.sites
 
@@ -227,7 +232,7 @@ def d_orbs_dos(path, s):
     orb_indices = [4, 7, 5, 8, 6] # see https://pymatgen.org/pymatgen.electronic_structure.core.html
     d_dos = {}
 
-    fig=pretty_plot(12,8)
+    fig = pretty_plot(12,8)
     title = "d orbitals dos %s" % ( structure[s].species)
     fig.suptitle(title,size=30)
 
@@ -249,7 +254,7 @@ def d_orbs_dos(path, s):
 
 def p_orbs_dos(path, s):
    
-    v = Vasprun(path + 'vasprun.xml')
+    v = Vasprun(path + '/vasprun.xml')
     cdos = v.complete_dos
     structure = cdos.structure.sites
     
@@ -277,33 +282,31 @@ def p_orbs_dos(path, s):
 
 
 
-def d_orbs_pdos(path, s,d):
+def d_orbs_pdos(path, s, d, save_fig=True):
     
-    v = Vasprun(path + 'vasprun.xml')
+    v = Vasprun(path + '/vasprun.xml')
     cdos = v.complete_dos
     structure = cdos.structure.sites
     
     orb_names = ["$d_{xy}$", "$d_{xz}$", "$d_{yz}$", "$d_{x^{2}-y^{2}}$", "$d_{z^{2}}$"]
     orb_indices = [4, 7, 5, 8, 6] # see https://pymatgen.org/pymatgen.electronic_structure.core.html
     d_dos = {}
-    fig=pretty_plot(12,8)
-    title = "d orbitals dos (" + str(s) + ") %s %s " %(path, structure[s].species)
-    fig.suptitle(title,size=30)
-    color_list=set_color(orb_names)
-
-
+ 
     d_dos[orb_names[d]] = cdos.get_site_orbital_dos(structure[s], Orbital(orb_indices[d]))
-    
-    ax=fig.subplot(111)
     plotter = DosPlotter(sigma=0.05)
     plotter.add_dos_dict(d_dos)
-    
-    plotter.get_plot_ax(xlim=[-2, 2], ylim=[-10, 10],ax=ax,color_list=color_list)
-    plt.tight_layout()
-    
-    creat_dir(path,'dos_fig')
-    plt.savefig('%s/dos_fig/dorb_pdos_%s%s_%s.png' %(path,s+1,structure[s].species,d), format='png', pad_inches=1, bbox_inches='tight')
-    return plt
+
+    if save_fig:
+        color_list=set_color(orb_names)
+        fig = pretty_plot(12,8)
+        ax = fig.subplot(111)
+        title = "d orbitals dos (" + str(s) + ") %s %s " %(path, structure[s].species)
+        fig.suptitle(title, size=30)
+        plotter.get_plot_ax(xlim=[-2, 2], ylim=[-10, 10], ax=ax, color_list=color_list)
+        plt.tight_layout()
+        creat_dir(path,'dos_fig')
+        plt.savefig('%s/dos_fig/dorb_pdos_%s%s_%s.png' %(path,s+1,structure[s].species,d), format='png', pad_inches=1, bbox_inches='tight')
+    return plotter
 
 
 
@@ -313,7 +316,7 @@ def d_orbs_pdos(path, s,d):
 def d_orbs_subdos(path, s):
 
     
-    v = Vasprun(path + 'vasprun.xml')
+    v = Vasprun(path + '/vasprun.xml')
     cdos = v.complete_dos
     structure = cdos.structure
     
@@ -355,7 +358,7 @@ def d_orbs_subdos(path, s):
 
 
 def d_orbs_dos_with_total(path,s,d,element=None):
-    v=Vasprun(path+"vasprun.xml")
+    v=Vasprun(path+"/vasprun.xml")
     cdos = v.complete_dos
     structure = cdos.structure.sites
 
@@ -386,7 +389,7 @@ def d_orbs_dos_with_total(path,s,d,element=None):
     return plt
 
 def element_dos_with_total(path,s1,s2):
-    v=Vasprun(path+"vasprun.xml")
+    v=Vasprun(path+"/vasprun.xml")
     cdos = v.complete_dos
     structure = cdos.structure.sites
 
@@ -415,4 +418,215 @@ def element_dos_with_total(path,s1,s2):
     creat_dir(path,'dos_fig')
     plt.savefig('%s/dos_fig/%s%s_with_total.png' %(path,s1+1,structure[s1].species), format='png', pad_inches=1, bbox_inches='tight')
     return plt
+
+def lob_dos(path,s):
+
+    doscar = Doscar(path + '/DOSCAR.lobster',path + '/POSCAR')
+    cdos = doscar.completedos
+    structure = cdos.structure
+    #pdos = cdos.pdos
+
+    #d_dos={}
+    fig = pretty_plot(12, 8)
+    title = "dos %s" % ( structure[s].species)
+    fig.suptitle(title, size=30)
+    #testvar=structure[0][s]
+    spd_dos = cdos.get_site_spd_dos(structure[s])
+    
+    plotter = DosPlotter(sigma=0.1)
+    plotter.add_dos_dict(spd_dos)
+    
+    ax=fig.subplot(111)
+    plotter = DosPlotter(sigma=0.1)
+    plotter.add_dos_dict(spd_dos)
+    plotter.get_plot_ax(xlim=[-2, 2], ylim=[-10, 10], ax=ax)
+
+    plt.tight_layout()
+    creat_dir(path,'lob_dos_fig')
+    plt.savefig('%s/lob_dos_fig/dos_%s%s.png' %(path,s+1,structure[s].species), format='png', pad_inches=1, bbox_inches='tight')
+
+    return plt
+ 
+def lob_d_orbs_dos(path, s):
+    
+    doscar = Doscar(path + '/DOSCAR.lobster',path + '/POSCAR')
+    cdos = doscar.completedos
+    structure = cdos.structure.sites
+    pdos = cdos.pdos
+
+    orb_names = ["$d_{xy}$", "$d_{xz}$", "$d_{yz}$", "$d_{x^{2}-y^{2}}$", "$d_{z^{2}}$"]
+    old_orb_names=['d_xy','d_xz','d_yz','d_x^2-y^2','d_z^2']
+    orb_list = list(pdos[structure[s]].keys()) # see https://pymatgen.org/pymatgen.electronic_structure.core.html
+    #orb_indices = [4, 7, 5, 8, 6] # see https://pymatgen.org/pymatgen.electronic_structure.core.html
+    d_dos = {}
+
+    fig = pretty_plot(12,8)
+    title = "d orbitals dos %s" % ( structure[s].species)
+    fig.suptitle(title,size=30)
+
+    color_list=set_color(orb_names)
+    #testvar=Orbital(orb_indices[0])
+    
+    for i in range(len(orb_names)):
+        for j in range(len(orb_list)):
+            if old_orb_names[i] in orb_list[j]:
+                orb_name_in_latex = orb_names[i]
+                d_dos[orb_name_in_latex] = cdos.get_site_orbital_dos(structure[s], orb_list[j])
+
+    
+    ax=fig.subplot(111)
+    plotter = DosPlotter(sigma=0.1)
+    plotter.add_dos_dict(d_dos)
+    
+    plotter.get_plot_ax(xlim=[-2, 2], ylim=[-10, 10],ax=ax, color_list=color_list)
+    
+    #invert_plotter = invert_axes(new_plotter)
+    plt.tight_layout()
+    creat_dir(path,'lob_dos_fig')
+    plt.savefig('%s/lob_dos_fig/dorb_dos_%s%s.png' %(path,s+1,structure[s].species), format='png', pad_inches=1, bbox_inches='tight')
+    return plt
+
+def lob_p_orbs_dos(path, s):
+    
+    doscar = Doscar(path + '/DOSCAR.lobster',path + '/POSCAR')
+    cdos = doscar.completedos
+    structure = cdos.structure.sites
+    pdos = cdos.pdos
+
+    orb_names = ["$p_{x}$", "$p_{y}$", "$p_{z}$"]
+    old_orb_names=['p_x','p_y','p_z']
+    orb_list = list(pdos[structure[s]].keys()) # see https://pymatgen.org/pymatgen.electronic_structure.core.html
+    #orb_indices = [3,1,2] # see https://pymatgen.org/pymatgen.electronic_structure.core.html
+    p_dos = {}
+
+    fig = pretty_plot(12,8)
+    title = "p orbitals dos %s" % ( structure[s].species)
+    fig.suptitle(title,size=30)
+
+    color_list=set_color(orb_names)
+    #testvar=Orbital(orb_indices[0])
+    
+    for i in range(len(orb_names)):
+        for j in range(len(orb_list)):
+            if old_orb_names[i] in orb_list[j]:
+                orb_name_in_latex = orb_names[i]
+                p_dos[orb_name_in_latex] = cdos.get_site_orbital_dos(structure[s], orb_list[j])
+
+    
+    ax=fig.subplot(111)
+    plotter = DosPlotter(sigma=0.1)
+    plotter.add_dos_dict(p_dos)
+    
+    plotter.get_plot_ax(xlim=[-2, 2], ylim=[-10, 10],ax=ax, color_list=color_list)
+    
+    #invert_plotter = invert_axes(new_plotter)
+    plt.tight_layout()
+    creat_dir(path,'lob_dos_fig')
+    plt.savefig('%s/lob_dos_fig/porb_dos_%s%s.png' %(path,s+1,structure[s].species), format='png', pad_inches=1, bbox_inches='tight')
+    return plt
+
+def occu_d_orbs_pdos(path, s , d, spin, emin=None, emax=None, nmin=None, nmax=None):
+    """
+    emin, emax : the range to accumulate the occupency, with referencing to fermi level
+    nmin, nmax : the range to accumulate the normalized factor, with referencing to fermi level
+    """
+    v = Vasprun(path + '/vasprun.xml')
+    cdos = v.complete_dos
+    structure = cdos.structure.sites
+    
+    orb_names = ["$d_{xy}$", "$d_{xz}$", "$d_{yz}$", "$d_{x^{2}-y^{2}}$", "$d_{z^{2}}$"]
+    orb_indices = [4, 7, 5, 8, 6] # see https://pymatgen.org/pymatgen.electronic_structure.core.html
+    d_dos = {}
+    d_dos = cdos.get_site_orbital_dos(structure[s], Orbital(orb_indices[d]))
+    densities = d_dos.get_densities(Spin(spin))
+    energies = d_dos.energies
+    fermi = d_dos.efermi
+
+    norm_min = energies[0]
+    norm_max = energies[-1]
+    if nmin:
+        norm_min = nmin + fermi
+    if nmax:
+        norm_max = nmax + fermi
+
+    occu_min = energies[0]
+    occu_max = fermi
+    if emin:
+        occu_min = emin + fermi
+    if emax:
+        occu_max = emax + fermi
+
+    norm = 0
+    occu = 0
+    for i in range(len(densities)):
+        if energies[i] >= norm_min and energies[i] <= norm_max:
+            norm = norm + densities[i]
+        if energies[i] >= occu_min and energies[i] <= occu_max:
+            occu = occu + densities[i]
+    occu_norm = occu/norm
+
+    #print(structure[s])
+    #print(orb_names[d],'spin:' ,spin)
+    print(occu_norm, occu_min - fermi, 'eV to',occu_max - fermi, 'eV')
+    return occu_norm
+
+def find_max_density(path, s , d, spin, emin, emax):
+    v = Vasprun(path + '/vasprun.xml')
+    cdos = v.complete_dos
+    structure = cdos.structure.sites
+    
+    orb_names = ["$d_{xy}$", "$d_{xz}$", "$d_{yz}$", "$d_{x^{2}-y^{2}}$", "$d_{z^{2}}$"]
+    orb_indices = [4, 7, 5, 8, 6] # see https://pymatgen.org/pymatgen.electronic_structure.core.html
+    d_dos = {}
+    d_dos = cdos.get_site_orbital_dos(structure[s], Orbital(orb_indices[d]))
+    densities = d_dos.get_densities(Spin(spin))
+    energies = d_dos.energies
+    fermi = d_dos.efermi
+
+    index_list= []
+    density_list= []
+    energy_list= []
+    max_list = []
+    for i in range(len(energies)):
+        if energies[i] >= emin + fermi and energies[i] <= emax + fermi:
+            index_list.append(i)
+            density_list.append(densities[i])
+            energy_list.append(energies[i])
+
+    for i in range(len(index_list)-2):
+        density = densities[index_list[i+1]]
+        if density > densities[index_list[i]] and density > densities[index_list[i+2]]:
+            max_list.append((index_list[i+1], energies[index_list[i+1]] - fermi, densities[index_list[i+1]]))
+    print(max_list)
+    return max_list
+
+def find_min_density(path, s , d, spin, emin, emax):
+    v = Vasprun(path + '/vasprun.xml')
+    cdos = v.complete_dos
+    structure = cdos.structure.sites
+    
+    orb_names = ["$d_{xy}$", "$d_{xz}$", "$d_{yz}$", "$d_{x^{2}-y^{2}}$", "$d_{z^{2}}$"]
+    orb_indices = [4, 7, 5, 8, 6] # see https://pymatgen.org/pymatgen.electronic_structure.core.html
+    d_dos = {}
+    d_dos = cdos.get_site_orbital_dos(structure[s], Orbital(orb_indices[d]))
+    densities = d_dos.get_densities(Spin(spin))
+    energies = d_dos.energies
+    fermi = d_dos.efermi
+
+    index_list= []
+    density_list= []
+    energy_list= []
+    min_list = []
+    for i in range(len(energies)):
+        if energies[i] >= (emin + fermi) and energies[i] <= (emax + fermi):
+            index_list.append(i)
+            density_list.append(densities[i])
+            energy_list.append(energies[i])
+
+    for i in range(len(index_list)-2):
+        density = densities[index_list[i+1]]
+        if density < densities[index_list[i]] and density < densities[index_list[i+2]]:
+            min_list.append((index_list[i+1], energies[index_list[i+1]] - fermi, densities[index_list[i+1]]))
+    print(min_list)
+    return min_list
 

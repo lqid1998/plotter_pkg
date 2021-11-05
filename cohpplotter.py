@@ -3,7 +3,7 @@ from pymatgen.util.plotting import pretty_plot
 from plotter_pkg.plotter_main import creat_dir
 from pymatgen.electronic_structure.core import Spin
 from pymatgen.electronic_structure.cohp import Cohp
-from pymatgen.io.lobster.outputs import Cohpcar,
+from pymatgen.io.lobster.outputs import Cohpcar
 from pymatgen.electronic_structure.plotter  import CohpPlotter
 
 
@@ -200,7 +200,8 @@ def COHP_plot(path, n=0, o=-1, orb_label=None, xlim=[-0.5,0.5], ylim = [-10,10],
     
     if savefig and fig_out:
         creat_dir(path,'COHP_fig')
-        new_plotter.savefig('%s/COHP_fig/%s/%sCOHP.png' %(path,n,savefig_label), format='png', pad_inches=1, bbox_inches='tight')
+        creat_dir(path+'COHP_fig','%s' %n)
+        new_plotter.savefig('%sCOHP_fig/%s/%sCOHP.png' %(path,n,savefig_label), format='png', pad_inches=1, bbox_inches='tight')
     elif not savefig and fig_out:
         plt.show()
     
@@ -256,9 +257,11 @@ def ICOHP_plot(path, n=0, o=-1, orb_label=None, xlim=[-0.5,0.5], ylim = [-10,10]
     #testvar= orbital_indices[0][0]
     plt.tight_layout()
     
+
     if savefig and fig_out:
         creat_dir(path,'ICOHP_fig')
-        new_plotter.savefig('%s/ICOHP_fig/%sICOHP.png' %(path,savefig_label), format='png', pad_inches=1, bbox_inches='tight')
+        creat_dir(path+'ICOHP_fig','%s' %n)
+        new_plotter.savefig('%sICOHP_fig/%s/%sICOHP.png' %(path,n,savefig_label), format='png', pad_inches=1, bbox_inches='tight')
     elif not savefig and not fig_out:
         plt.show()
     

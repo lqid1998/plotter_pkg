@@ -58,31 +58,6 @@ def creat_dir(path,dirname):
 from pymatgen.electronic_structure.cohp import Cohp
 from pymatgen.io.lobster.outputs import Cohpcar,Doscar
 
-def lob_dos(path,s):
-
-    doscar= Doscar(path + 'DOSCAR.lobster',path + 'POSCAR')
-    cdos= doscar.completedos
-    structure=cdos.structure
-    pdos = cdos.pdos
-
-    d_dos={}
-    title = "dos %s" % ( structure[s].species)
-    #testvar=structure[0][s]
-    spd_dos = cdos.get_site_spd_dos(structure[s])
-    
-    plotter = DosPlotter(sigma=0.1)
-    plotter.add_dos_dict(spd_dos)
-    
-    new_plotter = plotter.get_plot(xlim=[-10, 10], ylim=[-2, 2])
-    new_plotter.title(title, size=30)
-    
-    invert_plotter = invert_axes(new_plotter)
-    #plt.show()
-    creat_dir(path,'lob_dos_fig')
-    invert_plotter.savefig('%s/lob_dos_fig/dos_%s%s.png' %(path,s+1,structure[s].species), format='png', pad_inches=1, bbox_inches='tight')
-    return invert_plotter
-
-
 def lob_d_orbs_dos(path, s, exchange = False):
     
     doscar= Doscar(path + 'DOSCAR.lobster',path + 'POSCAR')
