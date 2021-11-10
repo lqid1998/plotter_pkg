@@ -191,7 +191,7 @@ def set_color(orb_list):
     color_list['total']=(0.7,0.7,0.7)
     return color_list
 
-def dos(path, s):
+def dos(path, s, xlim=None, ylim=None):
    
     v = Vasprun(path + '/vasprun.xml')
     cdos = v.complete_dos
@@ -209,7 +209,12 @@ def dos(path, s):
     ax=fig.subplot(111)
     plotter = DosPlotter(sigma=0.1)
     plotter.add_dos_dict(spd_dos)
-    plotter.get_plot_ax(xlim=[-2, 2], ylim=[-10, 10], ax=ax)
+
+    if not xlim:
+        xlim = [-2, 2]
+    if not ylim:
+        ylim = [-10, 10]
+    plotter.get_plot_ax(xlim=xlim, ylim=ylim, ax=ax)
 
     #This line is from DosPlotter.get_plot()ax.legend()                        
     plt.tight_layout()
@@ -222,7 +227,7 @@ def dos(path, s):
 # s is the atom you want to print (starts with 0)
 # d is the d-orbital label
 
-def d_orbs_dos(path, s):
+def d_orbs_dos(path, s, xlim=None, ylim=None):
    
     v = Vasprun(path + '/vasprun.xml')
     cdos = v.complete_dos
@@ -244,7 +249,11 @@ def d_orbs_dos(path, s):
     plotter = DosPlotter(sigma=0.1)
     plotter.add_dos_dict(d_dos)
     
-    plotter.get_plot_ax(xlim=[-2, 2], ylim=[-10, 10],ax=ax, color_list=color_list)
+    if not xlim:
+        xlim = [-2, 2]
+    if not ylim:
+        ylim = [-10, 10]
+    plotter.get_plot_ax(xlim=xlim, ylim=ylim, ax=ax, color_list=color_list)
     
     #invert_plotter = invert_axes(new_plotter)
     plt.tight_layout()
@@ -252,7 +261,7 @@ def d_orbs_dos(path, s):
     plt.savefig('%s/dos_fig/dorb_dos_%s%s.png' %(path,s+1,structure[s].species), format='png', pad_inches=1, bbox_inches='tight')
     return plt
 
-def p_orbs_dos(path, s):
+def p_orbs_dos(path, s, xlim=None, ylim=None):
    
     v = Vasprun(path + '/vasprun.xml')
     cdos = v.complete_dos
@@ -272,7 +281,11 @@ def p_orbs_dos(path, s):
     plotter = DosPlotter(sigma=0.1)
     plotter.add_dos_dict(d_dos)
     
-    plotter.get_plot_ax(xlim=[-2, 2], ylim=[-10, 10],ax=ax,color_list=color_list)
+    if not xlim:
+        xlim = [-2, 2]
+    if not ylim:
+        ylim = [-10, 10]
+    plotter.get_plot_ax(xlim=xlim, ylim=ylim, ax=ax, color_list=color_list)
     plt.tight_layout()
 
     creat_dir(path,'dos_fig')
@@ -282,7 +295,7 @@ def p_orbs_dos(path, s):
 
 
 
-def d_orbs_pdos(path, s, d, save_fig=True):
+def d_orbs_pdos(path, s, d, save_fig=True, xlim=None, ylim=None):
     
     v = Vasprun(path + '/vasprun.xml')
     cdos = v.complete_dos
@@ -296,13 +309,18 @@ def d_orbs_pdos(path, s, d, save_fig=True):
     plotter = DosPlotter(sigma=0.05)
     plotter.add_dos_dict(d_dos)
 
+    if not xlim:
+        xlim = [-2, 2]
+    if not ylim:
+        ylim = [-10, 10]
+        
     if save_fig:
         color_list=set_color(orb_names)
         fig = pretty_plot(12,8)
         ax = fig.subplot(111)
         title = "d orbitals dos (" + str(s) + ") %s %s " %(path, structure[s].species)
         fig.suptitle(title, size=30)
-        plotter.get_plot_ax(xlim=[-2, 2], ylim=[-10, 10], ax=ax, color_list=color_list)
+        plotter.get_plot_ax(xlim=xlim, ylim=ylim, ax=ax, color_list=color_list)
         plt.tight_layout()
         creat_dir(path,'dos_fig')
         plt.savefig('%s/dos_fig/dorb_pdos_%s%s_%s.png' %(path,s+1,structure[s].species,d), format='png', pad_inches=1, bbox_inches='tight')
@@ -388,7 +406,7 @@ def d_orbs_dos_with_total(path,s,d,element=None):
     plt.savefig('%s/dos_fig/dorb_pdos_with_total_%s%s_%s.png' %(path,s+1,structure[s].species,d), format='png', pad_inches=1, bbox_inches='tight')
     return plt
 
-def element_dos_with_total(path,s1,s2):
+def element_dos_with_total(path, s1, s2):
     v=Vasprun(path+"/vasprun.xml")
     cdos = v.complete_dos
     structure = cdos.structure.sites
@@ -419,7 +437,7 @@ def element_dos_with_total(path,s1,s2):
     plt.savefig('%s/dos_fig/%s%s_with_total.png' %(path,s1+1,structure[s1].species), format='png', pad_inches=1, bbox_inches='tight')
     return plt
 
-def lob_dos(path,s):
+def lob_dos(path, s):
 
     doscar = Doscar(path + '/DOSCAR.lobster',path + '/POSCAR')
     cdos = doscar.completedos
