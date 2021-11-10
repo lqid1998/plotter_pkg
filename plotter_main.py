@@ -1,5 +1,4 @@
-from pymatgen.io.vasp.outputs import Vasprun, Eigenval
-from pymatgen.electronic_structure.plotter  import DosPlotter
+from pymatgen.io.vasp.outputs import Eigenval
 import warnings
 import os
 
@@ -53,65 +52,11 @@ def exchange_alpha_beta(plotter):
 def creat_dir(path,dirname):
     if not os.path.exists('%s/%s' %(path,dirname)):
             os.mkdir('%s/%s' %(path,dirname))
-
-
-from pymatgen.electronic_structure.cohp import Cohp
-from pymatgen.io.lobster.outputs import Cohpcar,Doscar
-
-def lob_d_orbs_dos(path, s, exchange = False):
-    
-    doscar= Doscar(path + 'DOSCAR.lobster',path + 'POSCAR')
-    cdos= doscar.completedos
-    structure=cdos.structure
-    pdos = cdos.pdos
-
-    new_orb_names = ["$d_{xy}$", "$d_{xz}$", "$d_{yz}$", "$d_{x^{2}-y^{2}}$", "$d_{z^{2}}$"]
-    old_orb_names=['d_xy','d_xz','d_yz','d_x^2-y^2','d_z^2']
-    orb_list = list(pdos[structure[s]].keys()) # see https://pymatgen.org/pymatgen.electronic_structure.core.html
-    d_dos = {}
-    title = "d orbitals dos %s" % ( structure[s].species)
-    #testvar=Orbital(orb_indices[0])
-    
-    for i in range(len(orb_list)):
-        if not ('p' in orb_list[i]):
-            orb_in_d_dos_flag= True
-
-            for j in range(len(new_orb_names)):
-                if old_orb_names[j] in orb_list[i]:
-                    orb_name_in_latex = orb_list[i].replace(old_orb_names[j],new_orb_names[j])
-                    d_dos[orb_name_in_latex] = cdos.get_site_orbital_dos(structure[s], orb_list[i])
-                    orb_in_d_dos_flag=False
-
-            if orb_in_d_dos_flag :
-                d_dos[orb_list[i]] = cdos.get_site_orbital_dos(structure[s], orb_list[i])
-                orb_in_d_dos_flag=False
-    
-    plotter = DosPlotter(sigma=0.1)
-    plotter.add_dos_dict(d_dos)
-    
-    new_plotter = plotter.get_plot(xlim=[-10, 10], ylim=[-2, 2])
-    new_plotter.title(title, size=30)
-    
-    invert_plotter = invert_axes(new_plotter)
-    if exchange:
-        invert_plotter = exchange_alpha_beta(invert_plotter)
-    creat_dir(path,'lob_dos_fig')
-    invert_plotter.savefig('%s/lob_dos_fig/dorb_dos_%s%s.png' %(path,s+1,structure[s].species), format='png', pad_inches=1, bbox_inches='tight')
-
-
-    return invert_plotter
-
-
-
-
-
     
 def main():
     # a list of paths to the output folder of the calculations 
     # containing the vasprun.xml and EIGENVAL files
     # makes it easier to plot multiple files for comparison
-
-
 
     # ignores the warnings to make it nicer
     warnings.filterwarnings("ignore")
