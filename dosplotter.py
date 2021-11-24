@@ -1,5 +1,3 @@
-#from math import e
-#from re import T
 from pymatgen.electronic_structure.core import Orbital, OrbitalType
 from pymatgen.io.vasp.outputs import Vasprun
 from pymatgen.electronic_structure.plotter  import DosPlotter
@@ -196,6 +194,16 @@ def get_plot_ax_func(self, xlim=None, ylim=None,ax=None, color_list=None, color=
     
 DosPlotter.get_plot_ax = get_plot_ax_func #Add this new method to DosPlotter
 
+def full_color():
+    import palettable
+    orb_index = {"$d_{xy}$": 0, "$d_{xz}$": 1, "$d_{yz}$": 2, "$d_{x^{2}-y^{2}}$": 3, "$d_{z^{2}}$": 4, \
+        "$s$": 5,"$p_{x}$": 6,"$p_{y}$": 7,"$p_{z}$": 8,}
+    colors = palettable.colorbrewer.qualitative.Set1_9.mpl_colors
+    color_list = {}
+    for i, key in enumerate(orb_index):
+        color_list[key] = colors[i]
+    color_list['total']=(0.7,0.7,0.7)
+    return color_list
 
 def set_color(orb_list):
     import palettable
@@ -328,7 +336,7 @@ def p_orbs_dos(cdos, structure, atom_label, xlim=None, ylim=None, save_fig=True,
     plotter.add_dos_dict(p_dos)
 
     if save_fig:
-        color_list=set_color(orb_names)
+        color_list=full_color()
         fig = pretty_plot(12,8)
         ax=fig.subplot(111)
 
@@ -367,7 +375,7 @@ def d_orbs_dos(cdos, structure, atom_label, xlim=None, ylim=None, save_fig=True,
     plotter.add_dos_dict(d_dos)
     
     if save_fig:
-        color_list=set_color(orb_names)
+        color_list=full_color()
         fig = pretty_plot(12,8)
         ax=fig.subplot(111)
 
@@ -405,7 +413,7 @@ def d_orbs_pdos(cdos, structure, atom_label, orbital_label, xlim=None, ylim=None
     plotter.add_dos(orb_names[orbital_label], d_dos)
  
     if save_fig:
-        color_list=set_color(orb_names)
+        color_list=full_color()
         fig = pretty_plot(12,8)
         ax=fig.subplot(111)
 
@@ -450,7 +458,7 @@ def d_orbs_subdos(path, s):
     orb_names = ["$d_{xy}$", "$d_{xz}$", "$d_{yz}$", "$d_{x^{2}-y^{2}}$", "$d_{z^{2}}$"]
     orb_indices = [4, 7, 5, 8, 6] # see https://pymatgen.org/pymatgen.electronic_structure.core.html
     d_dos = {}
-    color_list=set_color(orb_names)
+    color_list=full_color()
     #plot each d-orbital projected dos into subplot 1-5
     total_dos = cdos.get_site_dos(structure[s])
     total_plotter = DosPlotter(sigma=0.1,stack=True)
@@ -500,7 +508,7 @@ def d_orbs_dos_with_total(path,s,d,element=None):
     pdos_plotter.add_dos_dict(d_dos)
 
     ax=fig.subplot(111)
-    color_list=set_color(orb_names)
+    color_list=full_color()
     total_plotter.get_plot_ax(xlim=[-2,2],ylim=[-10,10],ax=ax,color_list=color_list,element='Ru')
     pdos_plotter.get_plot_ax(xlim=[-2,2],ylim=[-10,10],ax=ax,color_list=color_list, element='Ru')
     
@@ -585,7 +593,7 @@ def lob_d_orbs_dos(path, s):
     title = "d orbitals dos %s" % ( structure[s].species)
     fig.suptitle(title,size=30)
 
-    color_list=set_color(orb_names)
+    color_list=full_color()
     #testvar=Orbital(orb_indices[0])
     
     for i in range(len(orb_names)):
@@ -624,7 +632,7 @@ def lob_p_orbs_dos(path, s):
     title = "p orbitals dos %s" % ( structure[s].species)
     fig.suptitle(title,size=30)
 
-    color_list=set_color(orb_names)
+    color_list=full_color()
     #testvar=Orbital(orb_indices[0])
     
     for i in range(len(orb_names)):
