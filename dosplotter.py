@@ -1,5 +1,5 @@
-from math import e
-from re import T
+#from math import e
+#from re import T
 from pymatgen.electronic_structure.core import Orbital, OrbitalType
 from pymatgen.io.vasp.outputs import Vasprun
 from pymatgen.electronic_structure.plotter  import DosPlotter
@@ -10,6 +10,27 @@ from plotter_pkg.plotter_main import creat_dir
 from pymatgen.electronic_structure.core import Spin
 import matplotlib.pyplot as plt
 import numpy as np
+
+def get_cdos_vasp(path):
+    try:
+        v = Vasprun(path + '/vasprun.xml')
+        cdos = v.complete_dos
+        structure = cdos.structure.sites
+        return cdos, structure
+    except Exception as err:
+        print("an error occured when reading in vasprun.xml")
+        print(err)
+
+def get_cdos_lobster(path):
+    try:
+        doscar = Doscar(path + '/DOSCAR.lobster',path + '/POSCAR')
+        cdos = doscar.completedos
+        structure = cdos.structure.sites
+        pdos = cdos.pdos
+        return cdos, structure, pdos
+    except Exception as err:
+        print("an error occured when reading in DOSCAR.lobster")
+        print(err)
 
 def get_plot_ax_func(self, xlim=None, ylim=None,ax=None, color_list=None, color=None,element=None, label=None):
     """
@@ -191,145 +212,227 @@ def set_color(orb_list):
     color_list['total']=(0.7,0.7,0.7)
     return color_list
 
-def dos(path, s, xlim=None, ylim=None):
-   
-    v = Vasprun(path + '/vasprun.xml')
-    cdos = v.complete_dos
-    structure = cdos.structure.sites
-
-    fig = pretty_plot(12, 8)
-    title = "dos %s" % ( structure[s].species)
-    fig.suptitle(title, size=30)
+def spd_dos(cdos, structure, atom_label, xlim=None, ylim=None, save_fig=True, save_path=None, set_title=True, title=None):
     #testvar=structure[0][s]
-    spd_dos = cdos.get_site_spd_dos(structure[s])
-    
+    spd_dos = cdos.get_site_spd_dos(structure[atom_label])
     plotter = DosPlotter(sigma=0.1)
     plotter.add_dos_dict(spd_dos)
 
-    ax=fig.subplot(111)
-    plotter = DosPlotter(sigma=0.1)
-    plotter.add_dos_dict(spd_dos)
+    if save_fig:
+        fig = pretty_plot(12,8)
+        ax=fig.subplot(111)
 
-    if not xlim:
-        xlim = [-2, 2]
-    if not ylim:
-        ylim = [-10, 10]
-    plotter.get_plot_ax(xlim=xlim, ylim=ylim, ax=ax)
+        if set_title:
+            if not title:
+                title = "dos %s" % ( structure[atom_label].species)
+            fig.suptitle(title,size=30)
 
-    #This line is from DosPlotter.get_plot()ax.legend()                        
-    plt.tight_layout()
-    creat_dir(path,'dos_fig')
-    plt.savefig('%s/dos_fig/dos_%s%s.png' %(path,s+1,structure[s].species), format='png', pad_inches=1, bbox_inches='tight')
-
-    return plt
+        if not xlim:
+            xlim = [-2, 2]
+        if not ylim:
+            ylim = [-10, 10]
+        
+        plotter.get_plot_ax(xlim=xlim, ylim=ylim, ax=ax)
+        plt.tight_layout()
+        try:
+            creat_dir(save_path,'dos_fig')
+        except Exception as err:
+            print("please input the path to save")
+            print(err)
+        try:
+            plt.savefig('%s/dos_fig/dos_%s%s.png' %(save_path, atom_label + 1, structure[atom_label].species), format='png', \
+                pad_inches=1, bbox_inches='tight')
+        except Exception as err:
+            print("an error occured when save the figure")
+            print(err)
+    return plotter
 # MUST BE FROM A SINGLE POINT CALCULATION
 # f is the calculation's folder position in the path array
 # s is the atom you want to print (starts with 0)
 # d is the d-orbital label
-
-def d_orbs_dos(path, s, xlim=None, ylim=None):
-   
-    v = Vasprun(path + '/vasprun.xml')
-    cdos = v.complete_dos
-    structure = cdos.structure.sites
-
-    orb_names = ["$d_{xy}$", "$d_{xz}$", "$d_{yz}$", "$d_{x^{2}-y^{2}}$", "$d_{z^{2}}$"]
-    orb_indices = [4, 7, 5, 8, 6] # see https://pymatgen.org/pymatgen.electronic_structure.core.html
-    d_dos = {}
-
-    fig = pretty_plot(12,8)
-    title = "d orbitals dos %s" % ( structure[s].species)
-    fig.suptitle(title,size=30)
-
-    color_list=set_color(orb_names)
-    for i in range(5):
-        d_dos[orb_names[i]] = cdos.get_site_orbital_dos(structure[s], Orbital(orb_indices[i]))
-    
-    ax=fig.subplot(111)
+def total_dos(cdos, structure, atom_label, xlim=None, ylim=None, save_fig=True, save_path=None, set_title=True, title=None):
+    t_dos = cdos.get_site_dos(structure[atom_label])
     plotter = DosPlotter(sigma=0.1)
-    plotter.add_dos_dict(d_dos)
-    
-    if not xlim:
-        xlim = [-2, 2]
-    if not ylim:
-        ylim = [-10, 10]
-    plotter.get_plot_ax(xlim=xlim, ylim=ylim, ax=ax, color_list=color_list)
-    
-    #invert_plotter = invert_axes(new_plotter)
-    plt.tight_layout()
-    creat_dir(path,'dos_fig')
-    plt.savefig('%s/dos_fig/dorb_dos_%s%s.png' %(path,s+1,structure[s].species), format='png', pad_inches=1, bbox_inches='tight')
-    return plt
+    plotter.add_dos("total", t_dos)
 
-def p_orbs_dos(path, s, xlim=None, ylim=None):
-   
-    v = Vasprun(path + '/vasprun.xml')
-    cdos = v.complete_dos
-    structure = cdos.structure.sites
-    
+    if save_fig:
+        fig = pretty_plot(12,8)
+        ax=fig.subplot(111)
+
+        if set_title:
+            if not title:
+                title = "total dos %s" % ( structure[atom_label].species)
+            fig.suptitle(title,size=30)
+
+        if not xlim:
+            xlim = [-2, 2]
+        if not ylim:
+            ylim = [-10, 10]
+        
+        plotter.get_plot_ax(xlim=xlim, ylim=ylim, ax=ax)
+        plt.tight_layout()
+        try:
+            creat_dir(save_path,'dos_fig')
+        except Exception as err:
+            print("please input the path to save")
+            print(err)
+        try:
+            plt.savefig('%s/dos_fig/torb_dos_%s%s.png' %(save_path, atom_label + 1, structure[atom_label].species), format='png', \
+                pad_inches=1, bbox_inches='tight')
+        except Exception as err:
+            print("an error occured when save the figure")
+            print(err)
+    return plotter
+
+def s_orbs_dos(cdos, structure, atom_label, xlim=None, ylim=None, save_fig=True, save_path=None, set_title=True, title=None):
+    s_dos = cdos.get_site_orbital_dos(structure[atom_label], Orbital(0))
+    plotter = DosPlotter(sigma=0.1)
+    plotter.add_dos("s", s_dos)
+
+    if save_fig:
+        fig = pretty_plot(12,8)
+        ax=fig.subplot(111)
+
+        if set_title:
+            if not title:
+                title = "s orbitals dos %s" % ( structure[atom_label].species)
+            fig.suptitle(title,size=30)
+
+        if not xlim:
+            xlim = [-2, 2]
+        if not ylim:
+            ylim = [-10, 10]
+        
+        plotter.get_plot_ax(xlim=xlim, ylim=ylim, ax=ax)
+        plt.tight_layout()
+        try:
+            creat_dir(save_path,'dos_fig')
+        except Exception as err:
+            print("please input the path to save")
+            print(err)
+        try:
+            plt.savefig('%s/dos_fig/sorb_dos_%s%s.png' %(save_path, atom_label + 1, structure[atom_label].species), format='png', \
+                pad_inches=1, bbox_inches='tight')
+        except Exception as err:
+            print("an error occured when save the figure")
+            print(err)
+    return plotter
+
+def p_orbs_dos(cdos, structure, atom_label, xlim=None, ylim=None, save_fig=True, save_path=None, set_title=True, title=None):
     orb_names = ["$p_{x}$", "$p_{y}$", "$p_{z}$"]
     orb_indices = [3,1,2] # see https://pymatgen.org/pymatgen.electronic_structure.core.html
-    d_dos = {}
-    fig=pretty_plot(12,8)
-    title = "p orbitals dos %s" % ( structure[s].species)
-    fig.suptitle(title,size=30)
-    color_list=set_color(orb_names)
+    p_dos = {}
     for i in range(3):
-        d_dos[orb_names[i]] = cdos.get_site_orbital_dos(structure[s], Orbital(orb_indices[i]))
-    
-    ax=fig.subplot(111)
+        p_dos[orb_names[i]] = cdos.get_site_orbital_dos(structure[atom_label], Orbital(orb_indices[i]))
     plotter = DosPlotter(sigma=0.1)
-    plotter.add_dos_dict(d_dos)
-    
-    if not xlim:
-        xlim = [-2, 2]
-    if not ylim:
-        ylim = [-10, 10]
-    plotter.get_plot_ax(xlim=xlim, ylim=ylim, ax=ax, color_list=color_list)
-    plt.tight_layout()
+    plotter.add_dos_dict(p_dos)
 
-    creat_dir(path,'dos_fig')
-    plt.savefig('%s/dos_fig/porb_dos_%s%s.png' %(path,s+1,structure[s].species), format='png', pad_inches=1, bbox_inches='tight')
-    return plt
-
-
-
-
-def d_orbs_pdos(path, s, d, save_fig=True, xlim=None, ylim=None):
-    
-    v = Vasprun(path + '/vasprun.xml')
-    cdos = v.complete_dos
-    structure = cdos.structure.sites
-    
-    orb_names = ["$d_{xy}$", "$d_{xz}$", "$d_{yz}$", "$d_{x^{2}-y^{2}}$", "$d_{z^{2}}$"]
-    orb_indices = [4, 7, 5, 8, 6] # see https://pymatgen.org/pymatgen.electronic_structure.core.html
-    d_dos = {}
- 
-    d_dos[orb_names[d]] = cdos.get_site_orbital_dos(structure[s], Orbital(orb_indices[d]))
-    plotter = DosPlotter(sigma=0.05)
-    plotter.add_dos_dict(d_dos)
-
-    if not xlim:
-        xlim = [-2, 2]
-    if not ylim:
-        ylim = [-10, 10]
-        
     if save_fig:
         color_list=set_color(orb_names)
         fig = pretty_plot(12,8)
-        ax = fig.subplot(111)
-        title = "d orbitals dos (" + str(s) + ") %s %s " %(path, structure[s].species)
-        fig.suptitle(title, size=30)
+        ax=fig.subplot(111)
+
+        if set_title:
+            if not title:
+                title = "p orbitals dos %s" % ( structure[atom_label].species)
+            fig.suptitle(title,size=30)
+
+        if not xlim:
+            xlim = [-2, 2]
+        if not ylim:
+            ylim = [-10, 10]
+        
         plotter.get_plot_ax(xlim=xlim, ylim=ylim, ax=ax, color_list=color_list)
         plt.tight_layout()
-        creat_dir(path,'dos_fig')
-        plt.savefig('%s/dos_fig/dorb_pdos_%s%s_%s.png' %(path,s+1,structure[s].species,d), format='png', pad_inches=1, bbox_inches='tight')
+        try:
+            creat_dir(save_path,'dos_fig')
+        except Exception as err:
+            print("please input the path to save")
+            print(err)
+        try:
+            plt.savefig('%s/dos_fig/porb_dos_%s%s.png' %(save_path, atom_label + 1, structure[atom_label].species), format='png', \
+                pad_inches=1, bbox_inches='tight')
+        except Exception as err:
+            print("an error occured when save the figure")
+            print(err)
     return plotter
 
+def d_orbs_dos(cdos, structure, atom_label, xlim=None, ylim=None, save_fig=True, save_path=None, set_title=True, title=None):
+    orb_names = ["$d_{xy}$", "$d_{xz}$", "$d_{yz}$", "$d_{x^{2}-y^{2}}$", "$d_{z^{2}}$"]
+    orb_indices = [4, 7, 5, 8, 6] # see https://pymatgen.org/pymatgen.electronic_structure.core.html
+    d_dos = {}
+    for i in range(5):
+        d_dos[orb_names[i]] = cdos.get_site_orbital_dos(structure[atom_label], Orbital(orb_indices[i]))
+    plotter = DosPlotter(sigma=0.1)
+    plotter.add_dos_dict(d_dos)
+    
+    if save_fig:
+        color_list=set_color(orb_names)
+        fig = pretty_plot(12,8)
+        ax=fig.subplot(111)
 
+        if set_title:
+            if not title:
+                title = "d orbitals dos %s" % ( structure[atom_label].species)
+            fig.suptitle(title,size=30)
 
+        if not xlim:
+            xlim = [-2, 2]
+        if not ylim:
+            ylim = [-10, 10]
+        
+        plotter.get_plot_ax(xlim=xlim, ylim=ylim, ax=ax, color_list=color_list)
+        plt.tight_layout()
+        try:
+            creat_dir(save_path,'dos_fig')
+        except Exception as err:
+            print("please input the path to save")
+            print(err)
+        try:
+            plt.savefig('%s/dos_fig/dorb_dos_%s%s.png' %(save_path, atom_label + 1, structure[atom_label].species), format='png', \
+                pad_inches=1, bbox_inches='tight')
+        except Exception as err:
+            print("an error occured when save the figure")
+            print(err)
+    return plotter
 
+def d_orbs_pdos(cdos, structure, atom_label, orbital_label, xlim=None, ylim=None, save_fig=True, save_path=None, set_title=True, \
+    title=None):
+    orb_names = ["$d_{xy}$", "$d_{xz}$", "$d_{yz}$", "$d_{x^{2}-y^{2}}$", "$d_{z^{2}}$"]
+    orb_indices = [4, 7, 5, 8, 6] # see https://pymatgen.org/pymatgen.electronic_structure.core.html
+    d_dos = cdos.get_site_orbital_dos(structure[atom_label], Orbital(orb_indices[orbital_label]))
+    plotter = DosPlotter(sigma=0.05)
+    plotter.add_dos(orb_names[orbital_label], d_dos)
+ 
+    if save_fig:
+        color_list=set_color(orb_names)
+        fig = pretty_plot(12,8)
+        ax=fig.subplot(111)
 
+        if set_title:
+            if not title:
+                title = "d orbitals dos (" + str(atom_label) + ") %s %s " %(save_path, structure[atom_label].species)
+            fig.suptitle(title,size=30)
+        
+        if not xlim:
+            xlim = [-2, 2]
+        if not ylim:
+            ylim = [-10, 10]
+        
+        plotter.get_plot_ax(xlim=xlim, ylim=ylim, ax=ax, color_list=color_list)
+        plt.tight_layout()
+        try:
+            creat_dir(save_path,'dos_fig')
+        except Exception as err:
+            print("please input the path to save")
+            print(err)
+        try:
+            plt.savefig('%s/dos_fig/dorb_pdos_%s%s_%s.png' %(save_path,atom_label+1,structure[atom_label].species,orbital_label), \
+            format='png', pad_inches=1, bbox_inches='tight')
+        except Exception as err:
+            print("an error occured when save the figure")
+            print(err)
+    return plotter
 
 def d_orbs_subdos(path, s):
 
