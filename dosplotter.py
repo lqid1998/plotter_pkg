@@ -327,11 +327,11 @@ def s_orbs_dos(cdos, structure, atom_label, xlim=None, ylim=None, save_fig=True,
     return plotter
 
 def p_orbs_dos(cdos, structure, atom_label, xlim=None, ylim=None, save_fig=True, save_path=None, set_title=True, title=None):
-    orb_names = ["$p_{x}$", "$p_{y}$", "$p_{z}$"]
-    orb_indices = [3,1,2] # see https://pymatgen.org/pymatgen.electronic_structure.core.html
+    orbit_tuple = (("$p_{x}$", 3,), ("$p_{y}$", 1,), ("$p_{z}$", 2,),)
+    # see https://pymatgen.org/pymatgen.electronic_structure.core.html
     p_dos = {}
-    for i in range(3):
-        p_dos[orb_names[i]] = cdos.get_site_orbital_dos(structure[atom_label], Orbital(orb_indices[i]))
+    for i in range(len(orbit_tuple)):
+        p_dos[orbit_tuple[i][0]] = cdos.get_site_orbital_dos(structure[atom_label], Orbital(orbit_tuple[i][1]))
     plotter = DosPlotter(sigma=0.1)
     plotter.add_dos_dict(p_dos)
 
@@ -366,11 +366,11 @@ def p_orbs_dos(cdos, structure, atom_label, xlim=None, ylim=None, save_fig=True,
     return plotter
 
 def d_orbs_dos(cdos, structure, atom_label, xlim=None, ylim=None, save_fig=True, save_path=None, set_title=True, title=None):
-    orb_names = ["$d_{xy}$", "$d_{xz}$", "$d_{yz}$", "$d_{x^{2}-y^{2}}$", "$d_{z^{2}}$"]
-    orb_indices = [4, 7, 5, 8, 6] # see https://pymatgen.org/pymatgen.electronic_structure.core.html
+    orbit_tuple = (("$d_{xy}$", 4), ("$d_{xz}$", 7), ("$d_{yz}$", 5), ("$d_{x^{2}-y^{2}}$", 8), ("$d_{z^{2}}$", 6),)
+    # see https://pymatgen.org/pymatgen.electronic_structure.core.html
     d_dos = {}
-    for i in range(5):
-        d_dos[orb_names[i]] = cdos.get_site_orbital_dos(structure[atom_label], Orbital(orb_indices[i]))
+    for i in range(len(orbit_tuple)):
+        d_dos[orbit_tuple[i][0]] = cdos.get_site_orbital_dos(structure[atom_label], Orbital(orbit_tuple[i][1]))
     plotter = DosPlotter(sigma=0.1)
     plotter.add_dos_dict(d_dos)
     
@@ -406,11 +406,11 @@ def d_orbs_dos(cdos, structure, atom_label, xlim=None, ylim=None, save_fig=True,
 
 def d_orbs_pdos(cdos, structure, atom_label, orbital_label, xlim=None, ylim=None, save_fig=True, save_path=None, set_title=True, \
     title=None):
-    orb_names = ["$d_{xy}$", "$d_{xz}$", "$d_{yz}$", "$d_{x^{2}-y^{2}}$", "$d_{z^{2}}$"]
-    orb_indices = [4, 7, 5, 8, 6] # see https://pymatgen.org/pymatgen.electronic_structure.core.html
-    d_dos = cdos.get_site_orbital_dos(structure[atom_label], Orbital(orb_indices[orbital_label]))
+    orbit_tuple = (("$d_{xy}$", 4), ("$d_{xz}$", 7), ("$d_{yz}$", 5), ("$d_{x^{2}-y^{2}}$", 8), ("$d_{z^{2}}$", 6),)
+    # see https://pymatgen.org/pymatgen.electronic_structure.core.html
+    d_dos = cdos.get_site_orbital_dos(structure[atom_label], Orbital(orbit_tuple[orbital_label][1]))
     plotter = DosPlotter(sigma=0.05)
-    plotter.add_dos(orb_names[orbital_label], d_dos)
+    plotter.add_dos(orbit_tuple[orbital_label][0], d_dos)
  
     if save_fig:
         color_list=full_color()
@@ -653,6 +653,43 @@ def lob_p_orbs_dos(path, s):
     creat_dir(path,'lob_dos_fig')
     plt.savefig('%s/lob_dos_fig/porb_dos_%s%s.png' %(path,s+1,structure[s].species), format='png', pad_inches=1, bbox_inches='tight')
     return plt
+
+def occu_dos(cdos, structure, atom_label, emin=None, emax=None, nmin=None, nmax=None):
+    dos = cdos.get_site_dos(structure[atom_label])
+    densities_up = dos.get_densities(Spin(1))
+    densities_down = dos.get_densities(Spin(-1))
+    energies = dos.energies
+    fermi = dos.efermi
+
+    norm_min = energies[0]
+    norm_max = energies[-1]
+    if nmin:
+        norm_min = nmin + fermi
+    if nmax:
+        norm_max = nmax + fermi
+
+    occu_min = energies[0]
+    occu_max = fermi
+    if emin:
+        occu_min = emin + fermi
+    if emax:
+        occu_max = emax + fermi
+
+    norm = 0
+    occu = 0
+    for i in range(len(energies)):
+        if energies[i] >= norm_min and energies[i] <= norm_max:
+            norm = norm + densities_up[i] + densities_down[i]
+        if energies[i] >= occu_min and energies[i] <= occu_max:
+            occu = occu + densities_up[i] + densities_down[i]
+    occu_norm = occu/norm
+
+    #print(structure[s])
+    #print(orb_names[d],'spin:' ,spin)
+    #print(occu_norm, occu_min - fermi, 'eV to',occu_max - fermi, 'eV')
+    print(f'{occu_norm:.4f}')
+    return occu, occu_norm
+
 
 def occu_d_orbs_pdos(path, s , d, spin, emin=None, emax=None, nmin=None, nmax=None):
     """
