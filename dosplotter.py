@@ -24,8 +24,7 @@ def get_cdos_lobster(path):
         doscar = Doscar(path + '/DOSCAR.lobster',path + '/POSCAR')
         cdos = doscar.completedos
         structure = cdos.structure.sites
-        pdos = cdos.pdos
-        return cdos, structure, pdos
+        return cdos, structure
     except Exception as err:
         print("an error occured when reading in DOSCAR.lobster")
         print(err)
@@ -196,12 +195,16 @@ DosPlotter.get_plot_ax = get_plot_ax_func #Add this new method to DosPlotter
 
 def full_color():
     import palettable
-    orb_index = {"$d_{xy}$": 0, "$d_{xz}$": 1, "$d_{yz}$": 2, "$d_{x^{2}-y^{2}}$": 3, "$d_{z^{2}}$": 4, \
-        "$s$": 5,"$p_{x}$": 6,"$p_{y}$": 7,"$p_{z}$": 8,}
+    orb_index = {"$d_{xy}$": 0, "$3d_{xy}$": 0, "$4d_{xy}$": 0, "$d_{xz}$": 1, "$3d_{xz}$": 1, "$4d_{xz}$": 1, \
+        "$d_{yz}$": 2, "$3d_{yz}$": 2, "$4d_{yz}$": 2, "$d_{x^{2}-y^{2}}$": 3, "$3d_{x^{2}-y^{2}}$": 3, "$4d_{x^{2}-y^{2}}$": 3, \
+            "$d_{z^{2}}$": 4, "$3d_{z^{2}}$": 4, "$4d_{z^{2}}$": 4, "$s$": 5, "$1s$": 5, "$2s$": 5, "$3s$": 5, "$4s$": 5, \
+                "$p_{x}$": 6, "$1p_{x}$": 6, "$2p_{x}$": 6, "$3p_{x}$": 6, \
+                    "$p_{y}$": 7, "$1p_{y}$": 7, "$2p_{y}$": 7, "$3p_{y}$": 7, \
+                        "$p_{z}$": 8, "$1p_{z}$": 8, "$2p_{z}$": 8, "$3p_{z}$": 8}
     colors = palettable.colorbrewer.qualitative.Set1_9.mpl_colors
     color_list = {}
-    for i, key in enumerate(orb_index):
-        color_list[key] = colors[i]
+    for i, item in enumerate(orb_index.items()):
+        color_list[item[0]] = colors[item[1]]
     color_list['total']=(0.7,0.7,0.7)
     return color_list
 
@@ -548,72 +551,172 @@ def element_dos_with_total(path, s1, s2):
     plt.savefig('%s/dos_fig/%s%s_with_total.png' %(path,s1+1,structure[s1].species), format='png', pad_inches=1, bbox_inches='tight')
     return plt
 
-def lob_dos(path, s):
-
-    doscar = Doscar(path + '/DOSCAR.lobster',path + '/POSCAR')
-    cdos = doscar.completedos
-    structure = cdos.structure
-    #pdos = cdos.pdos
-
-    #d_dos={}
-    fig = pretty_plot(12, 8)
-    title = "dos %s" % ( structure[s].species)
-    fig.suptitle(title, size=30)
-    #testvar=structure[0][s]
-    spd_dos = cdos.get_site_spd_dos(structure[s])
-    
+def lob_spd_dos(cdos, structure, atom_label, xlim=None, ylim=None, save_fig=True, save_path=None, set_title=True, title=None):
+    spd_dos = cdos.get_site_spd_dos(structure[atom_label])
     plotter = DosPlotter(sigma=0.1)
     plotter.add_dos_dict(spd_dos)
-    
-    ax=fig.subplot(111)
+
+    if save_fig:
+        fig = pretty_plot(12,8)
+        ax=fig.subplot(111)
+
+        if set_title:
+            if not title:
+                title = "lobster dos %s" % ( structure[atom_label].species)
+            fig.suptitle(title,size=30)
+
+        if not xlim:
+            xlim = [-2, 2]
+        if not ylim:
+            ylim = [-10, 10]
+        
+        plotter.get_plot_ax(xlim=xlim, ylim=ylim, ax=ax)
+        plt.tight_layout()
+        try:
+            creat_dir(save_path,'lob_dos_fig')
+        except Exception as err:
+            print("please input the path to save")
+            print(err)
+        try:
+            plt.savefig('%s/lob_dos_fig/spd_dos_%s%s.png' %(save_path, atom_label + 1, structure[atom_label].species), format='png', \
+                pad_inches=1, bbox_inches='tight')
+        except Exception as err:
+            print("an error occured when save the figure")
+            print(err)
+    return plotter
+
+def lob_total_dos(cdos, structure, atom_label, xlim=None, ylim=None, save_fig=True, save_path=None, set_title=True, title=None):
+    t_dos = cdos.get_site_dos(structure[atom_label])
     plotter = DosPlotter(sigma=0.1)
-    plotter.add_dos_dict(spd_dos)
-    plotter.get_plot_ax(xlim=[-2, 2], ylim=[-10, 10], ax=ax)
+    plotter.add_dos("total", t_dos)
 
-    plt.tight_layout()
-    creat_dir(path,'lob_dos_fig')
-    plt.savefig('%s/lob_dos_fig/dos_%s%s.png' %(path,s+1,structure[s].species), format='png', pad_inches=1, bbox_inches='tight')
+    if save_fig:
+        fig = pretty_plot(12,8)
+        ax=fig.subplot(111)
 
-    return plt
- 
-def lob_d_orbs_dos(path, s):
-    
-    doscar = Doscar(path + '/DOSCAR.lobster',path + '/POSCAR')
-    cdos = doscar.completedos
-    structure = cdos.structure.sites
-    pdos = cdos.pdos
+        if set_title:
+            if not title:
+                title = "lobster dos %s" % ( structure[atom_label].species)
+            fig.suptitle(title,size=30)
 
-    orb_names = ["$d_{xy}$", "$d_{xz}$", "$d_{yz}$", "$d_{x^{2}-y^{2}}$", "$d_{z^{2}}$"]
-    old_orb_names=['d_xy','d_xz','d_yz','d_x^2-y^2','d_z^2']
-    orb_list = list(pdos[structure[s]].keys()) # see https://pymatgen.org/pymatgen.electronic_structure.core.html
-    #orb_indices = [4, 7, 5, 8, 6] # see https://pymatgen.org/pymatgen.electronic_structure.core.html
+        if not xlim:
+            xlim = [-2, 2]
+        if not ylim:
+            ylim = [-10, 10]
+        
+        plotter.get_plot_ax(xlim=xlim, ylim=ylim, ax=ax)
+        plt.tight_layout()
+        try:
+            creat_dir(save_path,'lob_dos_fig')
+        except Exception as err:
+            print("please input the path to save")
+            print(err)
+        try:
+            plt.savefig('%s/lob_dos_fig/total_dos_%s%s.png' %(save_path, atom_label + 1, structure[atom_label].species), format='png', \
+                pad_inches=1, bbox_inches='tight')
+        except Exception as err:
+            print("an error occured when save the figure")
+            print(err)
+    return plotter
+
+def replace_latex_orb_list(orb_list):
+    orb_names = {"s":("$s$", 0,), "p_x":("$p_{x}$", 3,), "p_y":("$p_{y}$", 1,), "p_z":("$p_{z}$", 2,), "d_xy":("$d_{xy}$", 4,), \
+        "d_xz":("$d_{xz}$", 7,), "d_yz":("$d_{yz}$", 5,), "d_x^2-y^2":("$d_{x^{2}-y^{2}}$", 8,), "d_z^2":("$d_{z^{2}}$", 6,)}
+    new_orb_list = []
+    for i in range(len(orb_list)):
+        old_orb_name = orb_list[i]
+        n = old_orb_name[0]
+        old_orb_label = old_orb_name[1:]
+        new_orb_label_list = list(orb_names[old_orb_label][0])
+        new_orb_label_list.insert(1, n)
+        new_orb_name = "".join(new_orb_label_list)
+        new_orb_list.append(new_orb_name)
+    return new_orb_list
+
+def lob_d_orbs_dos(cdos, structure, atom_label, xlim=None, ylim=None, save_fig=True, save_path=None, set_title=True, title=None):
+    orb_list = list(cdos.pdos[structure[atom_label]].keys())
+    orb_list_latex = replace_latex_orb_list(orb_list)
+    d_orbs = ["d_xy", "d_xz", "d_yz", "d_x^2-y^2", "d_z^2"]
     d_dos = {}
-
-    fig = pretty_plot(12,8)
-    title = "d orbitals dos %s" % ( structure[s].species)
-    fig.suptitle(title,size=30)
-
-    color_list=full_color()
-    #testvar=Orbital(orb_indices[0])
-    
-    for i in range(len(orb_names)):
-        for j in range(len(orb_list)):
-            if old_orb_names[i] in orb_list[j]:
-                orb_name_in_latex = orb_names[i]
-                d_dos[orb_name_in_latex] = cdos.get_site_orbital_dos(structure[s], orb_list[j])
-
-    
-    ax=fig.subplot(111)
+    for i in range(len(orb_list)):
+        if orb_list[i][1:] in d_orbs:
+            d_dos[orb_list_latex[i]] = cdos.get_site_orbital_dos(structure[atom_label], orb_list[i])
     plotter = DosPlotter(sigma=0.1)
     plotter.add_dos_dict(d_dos)
     
-    plotter.get_plot_ax(xlim=[-2, 2], ylim=[-10, 10],ax=ax, color_list=color_list)
+    if save_fig:
+        color_list=full_color()
+        fig = pretty_plot(12,8)
+        ax=fig.subplot(111)
+
+        if set_title:
+            if not title:
+                title = "d orbitals dos %s" % ( structure[atom_label].species)
+            fig.suptitle(title,size=30)
+
+        if not xlim:
+            xlim = [-2, 2]
+        if not ylim:
+            ylim = [-10, 10]
+        
+        plotter.get_plot_ax(xlim=xlim, ylim=ylim, ax=ax, color_list=color_list)
+        plt.tight_layout()
+        try:
+            creat_dir(save_path,'lob_dos_fig')
+        except Exception as err:
+            print("please input the path to save")
+            print(err)
+        try:
+            plt.savefig('%s/lob_dos_fig/dorb_dos_%s%s.png' %(save_path, atom_label + 1, structure[atom_label].species), format='png', \
+                pad_inches=1, bbox_inches='tight')
+        except Exception as err:
+            print("an error occured when save the figure")
+            print(err)
+    return plotter
+
+def lob_d_orbs_pdos(cdos, structure, atom_label, orbital_label, xlim=None, ylim=None, save_fig=True, save_path=None, set_title=True, title=None):
+    d_orbs = ["d_xy", "d_xz", "d_yz", "d_x^2-y^2", "d_z^2"]
+    orb_list = list(cdos.pdos[structure[atom_label]].keys())
+    d_orbs_list = []
+    for i in range(len(d_orbs)):
+        for j in range(len(orb_list)):
+            if orb_list[j][1:] == d_orbs[i]:
+                d_orbs_list.append(orb_list[j])
+    d_orbs_list_latex = replace_latex_orb_list(d_orbs_list)
+
+    d_dos = cdos.get_site_orbital_dos(structure[atom_label], d_orbs_list[orbital_label])
+    plotter = DosPlotter(sigma=0.1)
+    plotter.add_dos(d_orbs_list_latex[orbital_label], d_dos)
     
-    #invert_plotter = invert_axes(new_plotter)
-    plt.tight_layout()
-    creat_dir(path,'lob_dos_fig')
-    plt.savefig('%s/lob_dos_fig/dorb_dos_%s%s.png' %(path,s+1,structure[s].species), format='png', pad_inches=1, bbox_inches='tight')
-    return plt
+    if save_fig:
+        color_list=full_color()
+        fig = pretty_plot(12,8)
+        ax=fig.subplot(111)
+
+        if set_title:
+            if not title:
+                title = "d orbitals dos (" + str(atom_label) + ") %s %s " %(save_path, structure[atom_label].species)
+            fig.suptitle(title,size=30)
+
+        if not xlim:
+            xlim = [-2, 2]
+        if not ylim:
+            ylim = [-10, 10]
+        
+        plotter.get_plot_ax(xlim=xlim, ylim=ylim, ax=ax, color_list=color_list)
+        plt.tight_layout()
+        try:
+            creat_dir(save_path,'lob_dos_fig')
+        except Exception as err:
+            print("please input the path to save")
+            print(err)
+        try:
+            plt.savefig('%s/lob_dos_fig/dorb_pdos_%s%s_%s.png' %(save_path,atom_label+1,structure[atom_label].species,orbital_label), \
+            format='png', pad_inches=1, bbox_inches='tight')
+        except Exception as err:
+            print("an error occured when save the figure")
+            print(err)
+    return plotter
 
 def lob_p_orbs_dos(path, s):
     
