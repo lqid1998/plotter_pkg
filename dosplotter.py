@@ -197,7 +197,7 @@ def full_color():
     import palettable
     orb_index = {"$d_{xy}$": 0, "$3d_{xy}$": 0, "$4d_{xy}$": 0, "$d_{xz}$": 1, "$3d_{xz}$": 1, "$4d_{xz}$": 1, \
         "$d_{yz}$": 2, "$3d_{yz}$": 2, "$4d_{yz}$": 2, "$d_{x^{2}-y^{2}}$": 3, "$3d_{x^{2}-y^{2}}$": 3, "$4d_{x^{2}-y^{2}}$": 3, \
-            "$d_{z^{2}}$": 4, "$3d_{z^{2}}$": 4, "$4d_{z^{2}}$": 4, "$s$": 5, "$1s$": 5, "$2s$": 5, "$3s$": 5, "$4s$": 5, \
+            "$d_{z^{2}}$": 4, "$3d_{z^{2}}$": 4, "$4d_{z^{2}}$": 4, "$s$": 5, "$1s$": 5, "$2s$": 5, "$3s$": 5, "$4s$": 5, "$5s$": 5, \
                 "$p_{x}$": 6, "$1p_{x}$": 6, "$2p_{x}$": 6, "$3p_{x}$": 6, \
                     "$p_{y}$": 7, "$1p_{y}$": 7, "$2p_{y}$": 7, "$3p_{y}$": 7, \
                         "$p_{z}$": 8, "$1p_{z}$": 8, "$2p_{z}$": 8, "$3p_{z}$": 8}
@@ -407,6 +407,45 @@ def d_orbs_dos(cdos, structure, atom_label, xlim=None, ylim=None, save_fig=True,
             print(err)
     return plotter
 
+def sd_orbs_dos(cdos, structure, atom_label, xlim=None, ylim=None, save_fig=True, save_path=None, set_title=True, title=None):
+    orbit_tuple = (("$s$", 0,), ("$d_{xy}$", 4), ("$d_{xz}$", 7), ("$d_{yz}$", 5), ("$d_{x^{2}-y^{2}}$", 8), ("$d_{z^{2}}$", 6),)
+    # see https://pymatgen.org/pymatgen.electronic_structure.core.html
+    sd_dos = {}
+    for i in range(len(orbit_tuple)):
+        sd_dos[orbit_tuple[i][0]] = cdos.get_site_orbital_dos(structure[atom_label], Orbital(orbit_tuple[i][1]))
+    plotter = DosPlotter(sigma=0.1)
+    plotter.add_dos_dict(sd_dos)
+    
+    if save_fig:
+        color_list=full_color()
+        fig = pretty_plot(12,8)
+        ax=fig.subplot(111)
+
+        if set_title:
+            if not title:
+                title = "s and d orbitals dos %s" % ( structure[atom_label].species)
+            fig.suptitle(title,size=30)
+
+        if not xlim:
+            xlim = [-2, 2]
+        if not ylim:
+            ylim = [-10, 10]
+        
+        plotter.get_plot_ax(xlim=xlim, ylim=ylim, ax=ax, color_list=color_list)
+        plt.tight_layout()
+        try:
+            creat_dir(save_path,'dos_fig')
+        except Exception as err:
+            print("please input the path to save")
+            print(err)
+        try:
+            plt.savefig('%s/dos_fig/sdorb_dos_%s%s.png' %(save_path, atom_label + 1, structure[atom_label].species), format='png', \
+                pad_inches=1, bbox_inches='tight')
+        except Exception as err:
+            print("an error occured when save the figure")
+            print(err)
+    return plotter
+
 def d_orbs_pdos(cdos, structure, atom_label, orbital_label, xlim=None, ylim=None, save_fig=True, save_path=None, set_title=True, \
     title=None):
     orbit_tuple = (("$d_{xy}$", 4), ("$d_{xz}$", 7), ("$d_{yz}$", 5), ("$d_{x^{2}-y^{2}}$", 8), ("$d_{z^{2}}$", 6),)
@@ -551,6 +590,44 @@ def element_dos_with_total(path, s1, s2):
     plt.savefig('%s/dos_fig/%s%s_with_total.png' %(path,s1+1,structure[s1].species), format='png', pad_inches=1, bbox_inches='tight')
     return plt
 
+def lob_s_dos(cdos, structure, atom_label, xlim=None, ylim=None, save_fig=True, save_path=None, set_title=True, title=None):
+    orb_list = list(cdos.pdos[structure[atom_label]].keys())
+    for i in orb_list:
+        if i[1:] == "s":
+            orbital_name = i
+            s_dos = cdos.get_site_orbital_dos(structure[atom_label], i)
+    plotter = DosPlotter(sigma=0.1)
+    plotter.add_dos(orbital_name, s_dos)
+
+    if save_fig:
+        fig = pretty_plot(12,8)
+        ax=fig.subplot(111)
+
+        if set_title:
+            if not title:
+                title = "lobster dos %s" % ( structure[atom_label].species)
+            fig.suptitle(title,size=30)
+
+        if not xlim:
+            xlim = [-2, 2]
+        if not ylim:
+            ylim = [-10, 10]
+        
+        plotter.get_plot_ax(xlim=xlim, ylim=ylim, ax=ax)
+        plt.tight_layout()
+        try:
+            creat_dir(save_path,'lob_dos_fig')
+        except Exception as err:
+            print("please input the path to save")
+            print(err)
+        try:
+            plt.savefig('%s/lob_dos_fig/s_dos_%s%s.png' %(save_path, atom_label + 1, structure[atom_label].species), format='png', \
+                pad_inches=1, bbox_inches='tight')
+        except Exception as err:
+            print("an error occured when save the figure")
+            print(err)
+    return plotter
+
 def lob_spd_dos(cdos, structure, atom_label, xlim=None, ylim=None, save_fig=True, save_path=None, set_title=True, title=None):
     spd_dos = cdos.get_site_spd_dos(structure[atom_label])
     plotter = DosPlotter(sigma=0.1)
@@ -674,6 +751,48 @@ def lob_d_orbs_dos(cdos, structure, atom_label, xlim=None, ylim=None, save_fig=T
             print(err)
     return plotter
 
+def lob_sd_orbs_dos(cdos, structure, atom_label, xlim=None, ylim=None, save_fig=True, save_path=None, set_title=True, title=None):
+    orb_list = list(cdos.pdos[structure[atom_label]].keys())
+    orb_list_latex = replace_latex_orb_list(orb_list)
+    sd_orbs = ["s", "d_xy", "d_xz", "d_yz", "d_x^2-y^2", "d_z^2"]
+    sd_dos = {}
+    for i in range(len(orb_list)):
+        if orb_list[i][1:] in sd_orbs:
+            sd_dos[orb_list_latex[i]] = cdos.get_site_orbital_dos(structure[atom_label], orb_list[i])
+    plotter = DosPlotter(sigma=0.1)
+    plotter.add_dos_dict(sd_dos)
+    
+    if save_fig:
+        color_list=full_color()
+        fig = pretty_plot(12,8)
+        ax=fig.subplot(111)
+
+        if set_title:
+            if not title:
+                title = "s and d orbitals dos %s" % ( structure[atom_label].species)
+            fig.suptitle(title,size=30)
+
+        if not xlim:
+            xlim = [-2, 2]
+        if not ylim:
+            ylim = [-10, 10]
+        
+        plotter.get_plot_ax(xlim=xlim, ylim=ylim, ax=ax, color_list=color_list)
+        plt.tight_layout()
+        try:
+            creat_dir(save_path,'lob_dos_fig')
+        except Exception as err:
+            print("please input the path to save")
+            print(err)
+        try:
+            plt.savefig('%s/lob_dos_fig/sdorb_dos_%s%s.png' %(save_path, atom_label + 1, structure[atom_label].species), format='png', \
+                pad_inches=1, bbox_inches='tight')
+        except Exception as err:
+            print("an error occured when save the figure")
+            print(err)
+    return plotter
+
+
 def lob_d_orbs_pdos(cdos, structure, atom_label, orbital_label, xlim=None, ylim=None, save_fig=True, save_path=None, set_title=True, title=None):
     d_orbs = ["d_xy", "d_xz", "d_yz", "d_x^2-y^2", "d_z^2"]
     orb_list = list(cdos.pdos[structure[atom_label]].keys())
@@ -757,6 +876,25 @@ def lob_p_orbs_dos(path, s):
     plt.savefig('%s/lob_dos_fig/porb_dos_%s%s.png' %(path,s+1,structure[s].species), format='png', pad_inches=1, bbox_inches='tight')
     return plt
 
+def idos(cdos, structure, atom_label, emin=None, emax=None):
+    dos = cdos.get_site_dos(structure[atom_label])
+    densities_up = dos.get_densities(Spin(1))
+    densities_down = dos.get_densities(Spin(-1))
+    energies = dos.energies
+    fermi = dos.efermi
+    occu_min = energies[0]
+    occu_max = fermi
+    if emin:
+        occu_min = emin + fermi
+    if emax:
+        occu_max = emax + fermi
+    occu = 0
+    for i in range(len(energies)-1):
+        denergy = energies[i+1]-energies[i]
+        if energies[i] >= occu_min and energies[i] <= occu_max:
+            occu = occu + densities_up[i]*denergy + densities_down[i]*denergy
+    return occu
+
 def occu_dos(cdos, structure, atom_label, emin=None, emax=None, nmin=None, nmax=None):
     dos = cdos.get_site_dos(structure[atom_label])
     densities_up = dos.get_densities(Spin(1))
@@ -793,16 +931,72 @@ def occu_dos(cdos, structure, atom_label, emin=None, emax=None, nmin=None, nmax=
     print(f'{occu_norm:.4f}')
     return occu, occu_norm
 
+def idos_d_orb(cdos, structure, atom_label, orbital_label, emin=None, emax=None):
+    orbit_tuple = (("$d_{xy}$", 4), ("$d_{xz}$", 7), ("$d_{yz}$", 5), ("$d_{x^{2}-y^{2}}$", 8), ("$d_{z^{2}}$", 6),)
+    # see https://pymatgen.org/pymatgen.electronic_structure.core.html
+    d_dos = cdos.get_site_orbital_dos(structure[atom_label], Orbital(orbit_tuple[orbital_label][1]))
+    densities_up = d_dos.get_densities(Spin(1))
+    densities_down = d_dos.get_densities(Spin(-1))
+    energies = d_dos.energies
+    fermi = d_dos.efermi
+    occu_min = energies[0]
+    occu_max = fermi
+    if emin:
+        occu_min = emin + fermi
+    if emax:
+        occu_max = emax + fermi
+    occu = 0
+    for i in range(len(energies)-1):
+        denergy = energies[i+1]-energies[i]
+        if energies[i] >= occu_min and energies[i] <= occu_max:
+            occu = occu + densities_up[i]*denergy + densities_down[i]*denergy
+    return occu
 
-def occu_d_orbs_pdos(path, s , d, spin, emin=None, emax=None, nmin=None, nmax=None):
-    """
-    emin, emax : the range to accumulate the occupency, with referencing to fermi level
-    nmin, nmax : the range to accumulate the normalized factor, with referencing to fermi level
-    """
-    v = Vasprun(path + '/vasprun.xml')
-    cdos = v.complete_dos
-    structure = cdos.structure.sites
-    
+def lob_idos_d_orb(cdos, structure, atom_label, orbital_label, emin=None, emax=None):
+    orb_list = list(cdos.pdos[structure[atom_label]].keys())
+    d_dos = cdos.get_site_orbital_dos(structure[atom_label], orb_list[orbital_label])
+    densities_up = d_dos.get_densities(Spin(1))
+    densities_down = d_dos.get_densities(Spin(-1))
+    energies = d_dos.energies
+    fermi = d_dos.efermi
+    occu_min = energies[0]
+    occu_max = fermi
+    if emin:
+        occu_min = emin + fermi
+    if emax:
+        occu_max = emax + fermi
+    occu = 0
+    for i in range(len(energies)-1):
+        denergy = energies[i+1]-energies[i]
+        if energies[i] >= occu_min and energies[i] <= occu_max:
+            occu = occu + densities_up[i]*denergy + densities_down[i]*denergy
+    print(orb_list, orb_list[orbital_label])
+    return occu
+
+def idos_d_orb_spin(cdos, structure, atom_label, orbital_label, spin ,emin=None, emax=None):
+    orbit_tuple = (("$d_{xy}$", 4), ("$d_{xz}$", 7), ("$d_{yz}$", 5), ("$d_{x^{2}-y^{2}}$", 8), ("$d_{z^{2}}$", 6),)
+    # see https://pymatgen.org/pymatgen.electronic_structure.core.html
+    d_dos = cdos.get_site_orbital_dos(structure[atom_label], Orbital(orbit_tuple[orbital_label][1]))
+    densities = d_dos.get_densities(Spin(spin))
+    densities_down = d_dos.get_densities(Spin(-1))
+    energies = d_dos.energies
+    fermi = d_dos.efermi
+    occu_min = energies[0]
+    occu_max = fermi
+    if emin:
+        occu_min = emin + fermi
+    if emax:
+        occu_max = emax + fermi
+    occu = 0
+    for i in range(len(energies)-1):
+        denergy = energies[i+1]-energies[i]
+        if energies[i] >= occu_min and energies[i] <= occu_max:
+            occu = occu + densities[i]*denergy
+    return occu
+
+
+def occu_d_orbs_pdos(cdos, structure, s , d, spin, emin=None, emax=None, nmin=None, nmax=None):
+
     orb_names = ["$d_{xy}$", "$d_{xz}$", "$d_{yz}$", "$d_{x^{2}-y^{2}}$", "$d_{z^{2}}$"]
     orb_indices = [4, 7, 5, 8, 6] # see https://pymatgen.org/pymatgen.electronic_structure.core.html
     d_dos = {}
@@ -836,8 +1030,8 @@ def occu_d_orbs_pdos(path, s , d, spin, emin=None, emax=None, nmin=None, nmax=No
 
     #print(structure[s])
     #print(orb_names[d],'spin:' ,spin)
-    print(occu_norm, occu_min - fermi, 'eV to',occu_max - fermi, 'eV')
-    return occu_norm
+    #print(occu_norm, occu_min - fermi, 'eV to',occu_max - fermi, 'eV')
+    return occu, occu_norm
 
 def find_max_density(path, s , d, spin, emin, emax):
     v = Vasprun(path + '/vasprun.xml')
