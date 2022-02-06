@@ -29,7 +29,7 @@ def get_cdos_lobster(path):
         print("an error occured when reading in DOSCAR.lobster")
         print(err)
 
-def get_plot_ax_func(self, xlim=None, ylim=None,ax=None, color_list=None, color=None,element=None, label=None, stack=False):
+def get_plot_ax_func(self, xlim=None, ylim=None,ax=None, color_list=None, color=None,element=None, label=None, stack=False, legend=True, width=3):
     """
     Plot the DOS in to an axes object of matplotlib. This method will not plot out the graph.
     
@@ -133,7 +133,7 @@ def get_plot_ax_func(self, xlim=None, ylim=None,ax=None, color_list=None, color=
         if self.stack or stack:
             ax.fill(x, y, color=color, label=label_text)        #use ax.fill instead of plt.fill
         else:
-            ax.plot(x, y, color=color, label=label_text, linewidth=3)      #use ax.plot to plot the dos into the target axes, instead of plt.plot() directly 
+            ax.plot(x, y, color=color, label=label_text, linewidth=width)      #use ax.plot to plot the dos into the target axes, instead of plt.plot() directly 
         if not self.zero_at_efermi:
             ylim = ax.get_ylim()            #use ax.get_ylim() insteading of plt.ylim     
             ax.plot(                        #use ax.plot to plot the dos into the target axes, instead of plt.plot() directly
@@ -162,7 +162,8 @@ def get_plot_ax_func(self, xlim=None, ylim=None,ax=None, color_list=None, color=
     ax.tick_params(axis='x', labelsize=16)
     ax.tick_params(axis='y', labelsize=16)
     ax.axhline(y=0, color="k", linestyle="--", linewidth=2)     #use ax.axhline instead of plt.axhline
-    ax.legend(fontsize=30)         #use ax.legend() insteadof plt.legend
+    if legend:
+        ax.legend(fontsize=30)         #use ax.legend() insteadof plt.legend
 
     #These lines can be replaced by ax.legend(fontsize=30)
     #leg = plt.gca().get_legend()
@@ -173,22 +174,6 @@ def get_plot_ax_func(self, xlim=None, ylim=None,ax=None, color_list=None, color=
     #plt.tight_layout()
 
     #Modified from invert_axes(plotter) to exchange the x-axis and y-axis of the plot
-    """
-    for line in ax.lines:
-        x = line.get_xdata()
-        y = line.get_ydata()
-        line.set_xdata(y)
-        line.set_ydata(x)
-    
-    ax.set_ylabel("Energies (eV)")
-    ax.set_xlabel("Density of states")
-    
-    xlim_invert = ylim
-    ylim_invert = xlim
-    
-    ax.set_xlim(xlim_invert)
-    ax.set_ylim(ylim_invert)
-    """
     return ax
     
 DosPlotter.get_plot_ax = get_plot_ax_func #Add this new method to DosPlotter
@@ -205,7 +190,7 @@ def full_color():
     color_list = {}
     for i, item in enumerate(orb_index.items()):
         color_list[item[0]] = colors[item[1]]
-    color_list['total']=(0.7,0.7,0.7)
+    color_list['total']=(0.9,0.9,0.9)
     return color_list
 
 def set_color(orb_list):
@@ -541,6 +526,8 @@ def d_orbs_dos_with_total(cdos, structure, atom_label, xlim=None, ylim=None, sav
     #plotter.add_dos(total_dos)
     total_plotter = DosPlotter(sigma=0.1,stack=True)
     total_plotter.add_dos("total", total_dos)
+    total_crochet = DosPlotter(sigma=0.1)
+    total_crochet.add_dos("", total_dos)
 
     if save_fig:
         color_list=full_color()
@@ -559,6 +546,7 @@ def d_orbs_dos_with_total(cdos, structure, atom_label, xlim=None, ylim=None, sav
         
         plotter.get_plot_ax(xlim=xlim, ylim=ylim, ax=ax, color_list=color_list)
         total_plotter.get_plot_ax(xlim=xlim, ylim=ylim, ax=ax, color_list=color_list)
+        total_crochet.get_plot_ax(xlim=xlim, ylim=ylim, ax=ax, color=(0.0,0.0,0.0), legend=False, width=1)
         plt.tight_layout()
         try:
             creat_dir(save_path,'dos_fig')
