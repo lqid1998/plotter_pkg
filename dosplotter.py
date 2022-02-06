@@ -29,7 +29,7 @@ def get_cdos_lobster(path):
         print("an error occured when reading in DOSCAR.lobster")
         print(err)
 
-def get_plot_ax_func(self, xlim=None, ylim=None,ax=None, color_list=None, color=None,element=None, label=None):
+def get_plot_ax_func(self, xlim=None, ylim=None,ax=None, color_list=None, color=None,element=None, label=None, stack=False):
     """
     Plot the DOS in to an axes object of matplotlib. This method will not plot out the graph.
     
@@ -88,7 +88,7 @@ def get_plot_ax_func(self, xlim=None, ylim=None,ax=None, color_list=None, color=
         newdens = {}
         for spin in [Spin.up, Spin.down]:
             if spin in densities:
-                if self.stack:
+                if self.stack or stack:
                     y[spin] += densities[spin]
                     newdens[spin] = y[spin].copy()
                 else:
@@ -130,7 +130,7 @@ def get_plot_ax_func(self, xlim=None, ylim=None,ax=None, color_list=None, color=
 
 
         
-        if self.stack:
+        if self.stack or stack:
             ax.fill(x, y, color=color, label=label_text)        #use ax.fill instead of plt.fill
         else:
             ax.plot(x, y, color=color, label=label_text, linewidth=3)      #use ax.plot to plot the dos into the target axes, instead of plt.plot() directly 
@@ -528,36 +528,50 @@ def d_orbs_subdos(path, s):
     return plt
 
 
-def d_orbs_dos_with_total(path,s,d,element=None):
-    v=Vasprun(path+"/vasprun.xml")
-    cdos = v.complete_dos
-    structure = cdos.structure.sites
-
-    orb_names = ["$d_{xy}$", "$d_{xz}$", "$d_{yz}$", "$d_{x^{2}-y^{2}}$", "$d_{z^{2}}$"]
-    orb_indices = [4, 7, 5, 8, 6] # see https://pymatgen.org/pymatgen.electronic_structure.core.html
+def d_orbs_dos_with_total(cdos, structure, atom_label, xlim=None, ylim=None, save_fig=True, save_path=None, set_title=True, title=None):
+    orbit_tuple = (("$d_{xy}$", 4), ("$d_{xz}$", 7), ("$d_{yz}$", 5), ("$d_{x^{2}-y^{2}}$", 8), ("$d_{z^{2}}$", 6),)
+    # see https://pymatgen.org/pymatgen.electronic_structure.core.html
     d_dos = {}
-    fig = pretty_plot(12,8)
-    title = "dos %s" % ( structure[s].species)
-    fig.suptitle(title, size=30)
-
-    total_dos = cdos.get_site_dos(structure[s])
-    spd_dos = cdos.get_site_spd_dos(structure[s])
+    for i in range(len(orbit_tuple)):
+        d_dos[orbit_tuple[i][0]] = cdos.get_site_orbital_dos(structure[atom_label], Orbital(orbit_tuple[i][1]))
+    plotter = DosPlotter(sigma=0.1)
+    plotter.add_dos_dict(d_dos)
+    
+    total_dos = cdos.get_site_dos(structure[atom_label])
+    #plotter.add_dos(total_dos)
     total_plotter = DosPlotter(sigma=0.1,stack=True)
     total_plotter.add_dos("total", total_dos)
 
-    pdos_plotter = DosPlotter(sigma=0.1)
-    d_dos[orb_names[d]] = cdos.get_site_orbital_dos(structure[s], Orbital(orb_indices[d]))
-    pdos_plotter.add_dos_dict(d_dos)
+    if save_fig:
+        color_list=full_color()
+        fig = pretty_plot(12,8)
+        ax=fig.subplot(111)
 
-    ax=fig.subplot(111)
-    color_list=full_color()
-    total_plotter.get_plot_ax(xlim=[-2,2],ylim=[-10,10],ax=ax,color_list=color_list,element='Ru')
-    pdos_plotter.get_plot_ax(xlim=[-2,2],ylim=[-10,10],ax=ax,color_list=color_list, element='Ru')
-    
-    plt.tight_layout()
-    creat_dir(path,'dos_fig')
-    plt.savefig('%s/dos_fig/dorb_pdos_with_total_%s%s_%s.png' %(path,s+1,structure[s].species,d), format='png', pad_inches=1, bbox_inches='tight')
-    return plt
+        if set_title:
+            if not title:
+                title = "d orbitals dos %s" % ( structure[atom_label].species)
+            fig.suptitle(title,size=30)
+
+        if not xlim:
+            xlim = [-2, 2]
+        if not ylim:
+            ylim = [-10, 10]
+        
+        plotter.get_plot_ax(xlim=xlim, ylim=ylim, ax=ax, color_list=color_list)
+        total_plotter.get_plot_ax(xlim=xlim, ylim=ylim, ax=ax, color_list=color_list)
+        plt.tight_layout()
+        try:
+            creat_dir(save_path,'dos_fig')
+        except Exception as err:
+            print("please input the path to save")
+            print(err)
+        try:
+            plt.savefig('%s/dos_fig/dorb_dos_with_total_%s%s.png' %(save_path, atom_label + 1, structure[atom_label].species), format='png', \
+                pad_inches=1, bbox_inches='tight')
+        except Exception as err:
+            print("an error occured when save the figure")
+            print(err)
+    return plotter
 
 def element_dos_with_total(path, s1, s2):
     v=Vasprun(path+"/vasprun.xml")
