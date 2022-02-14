@@ -29,7 +29,8 @@ def get_cdos_lobster(path):
         print("an error occured when reading in DOSCAR.lobster")
         print(err)
 
-def get_plot_ax_func(self, xlim=None, ylim=None,ax=None, color_list=None, color=None,element=None, label=None, stack=False, legend=True, width=3):
+def get_plot_ax_func(self, xlim=None, ylim=None,ax=None, color_list=None, color=None, \
+                        element=None, label=None, stack=False, legend=True, width=3, line_style='-'):
     """
     Plot the DOS in to an axes object of matplotlib. This method will not plot out the graph.
     
@@ -133,7 +134,7 @@ def get_plot_ax_func(self, xlim=None, ylim=None,ax=None, color_list=None, color=
         if self.stack or stack:
             ax.fill(x, y, color=color, label=label_text)        #use ax.fill instead of plt.fill
         else:
-            ax.plot(x, y, color=color, label=label_text, linewidth=width)      #use ax.plot to plot the dos into the target axes, instead of plt.plot() directly 
+            ax.plot(x, y, color=color, label=label_text, linewidth=width, linestyle=line_style)      #use ax.plot to plot the dos into the target axes, instead of plt.plot() directly 
         if not self.zero_at_efermi:
             ylim = ax.get_ylim()            #use ax.get_ylim() insteading of plt.ylim     
             ax.plot(                        #use ax.plot to plot the dos into the target axes, instead of plt.plot() directly
@@ -353,8 +354,12 @@ def p_orbs_dos(cdos, structure, atom_label, xlim=None, ylim=None, save_fig=True,
             print(err)
     return plotter
 
-def d_orbs_dos(cdos, structure, atom_label, xlim=None, ylim=None, save_fig=True, save_path=None, set_title=True, title=None):
-    orbit_tuple = (("$d_{xy}$", 4), ("$d_{xz}$", 7), ("$d_{yz}$", 5), ("$d_{x^{2}-y^{2}}$", 8), ("$d_{z^{2}}$", 6),)
+def d_orbs_dos(cdos, structure, atom_label, xlim=None, ylim=None, save_fig=True, save_path=None, \
+                set_title=True, title=None, dxy_exchange=False):
+    if dxy_exchange:
+        orbit_tuple = (("$d_{xy}$", 8), ("$d_{xz}$", 7), ("$d_{yz}$", 5), ("$d_{x^{2}-y^{2}}$", 4), ("$d_{z^{2}}$", 6),)
+    else:
+        orbit_tuple = (("$d_{xy}$", 4), ("$d_{xz}$", 7), ("$d_{yz}$", 5), ("$d_{x^{2}-y^{2}}$", 8), ("$d_{z^{2}}$", 6),)
     # see https://pymatgen.org/pymatgen.electronic_structure.core.html
     d_dos = {}
     for i in range(len(orbit_tuple)):
@@ -513,8 +518,12 @@ def d_orbs_subdos(path, s):
     return plt
 
 
-def d_orbs_dos_with_total(cdos, structure, atom_label, xlim=None, ylim=None, save_fig=True, save_path=None, set_title=True, title=None):
-    orbit_tuple = (("$d_{xy}$", 4), ("$d_{xz}$", 7), ("$d_{yz}$", 5), ("$d_{x^{2}-y^{2}}$", 8), ("$d_{z^{2}}$", 6),)
+def d_orbs_dos_with_total(cdos, structure, atom_label, xlim=None, ylim=None, save_fig=True, \
+                            save_path=None, set_title=True, title=None, dxy_exchange=False):
+    if dxy_exchange:
+        orbit_tuple = (("$d_{xy}$", 8), ("$d_{xz}$", 7), ("$d_{yz}$", 5), ("$d_{x^{2}-y^{2}}$", 4), ("$d_{z^{2}}$", 6),)
+    else:
+        orbit_tuple = (("$d_{xy}$", 4), ("$d_{xz}$", 7), ("$d_{yz}$", 5), ("$d_{x^{2}-y^{2}}$", 8), ("$d_{z^{2}}$", 6),)
     # see https://pymatgen.org/pymatgen.electronic_structure.core.html
     d_dos = {}
     for i in range(len(orbit_tuple)):
@@ -544,9 +553,9 @@ def d_orbs_dos_with_total(cdos, structure, atom_label, xlim=None, ylim=None, sav
         if not ylim:
             ylim = [-10, 10]
         
-        plotter.get_plot_ax(xlim=xlim, ylim=ylim, ax=ax, color_list=color_list)
         total_plotter.get_plot_ax(xlim=xlim, ylim=ylim, ax=ax, color_list=color_list)
-        total_crochet.get_plot_ax(xlim=xlim, ylim=ylim, ax=ax, color=(0.0,0.0,0.0), legend=False, width=1)
+        plotter.get_plot_ax(xlim=xlim, ylim=ylim, ax=ax, color_list=color_list)
+        total_crochet.get_plot_ax(xlim=xlim, ylim=ylim, ax=ax, color=(0.0,0.0,0.0), legend=False, width=1, line_style='--')
         plt.tight_layout()
         try:
             creat_dir(save_path,'dos_fig')
