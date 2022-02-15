@@ -354,6 +354,55 @@ def p_orbs_dos(cdos, structure, atom_label, xlim=None, ylim=None, save_fig=True,
             print(err)
     return plotter
 
+def p_orbs_dos_with_total(cdos, structure, atom_label, xlim=None, ylim=None, save_fig=True, save_path=None, set_title=True, title=None):
+
+    orbit_tuple = (("$p_{x}$", 3,), ("$p_{y}$", 1,), ("$p_{z}$", 2,),)
+    # see https://pymatgen.org/pymatgen.electronic_structure.core.html
+    p_dos = {}
+    for i in range(len(orbit_tuple)):
+        p_dos[orbit_tuple[i][0]] = cdos.get_site_orbital_dos(structure[atom_label], Orbital(orbit_tuple[i][1]))
+    plotter = DosPlotter(sigma=0.1)
+    plotter.add_dos_dict(p_dos)
+
+    total_dos = cdos.get_site_dos(structure[atom_label])
+    #plotter.add_dos(total_dos)
+    total_plotter = DosPlotter(sigma=0.1,stack=True)
+    total_plotter.add_dos("total", total_dos)
+    total_crochet = DosPlotter(sigma=0.1)
+    total_crochet.add_dos("", total_dos)
+
+    if save_fig:
+        color_list=full_color()
+        fig = pretty_plot(12,8)
+        ax=fig.subplot(111)
+
+        if set_title:
+            if not title:
+                title = "p orbitals dos %s" % ( structure[atom_label].species)
+            fig.suptitle(title,size=30)
+
+        if not xlim:
+            xlim = [-2, 2]
+        if not ylim:
+            ylim = [-10, 10]
+        
+        total_plotter.get_plot_ax(xlim=xlim, ylim=ylim, ax=ax, color_list=color_list)
+        plotter.get_plot_ax(xlim=xlim, ylim=ylim, ax=ax, color_list=color_list)
+        total_crochet.get_plot_ax(xlim=xlim, ylim=ylim, ax=ax, color=(0.0,0.0,0.0), legend=False, width=1, line_style='--')
+        plt.tight_layout()
+        try:
+            creat_dir(save_path,'dos_fig')
+        except Exception as err:
+            print("please input the path to save")
+            print(err)
+        try:
+            plt.savefig('%s/dos_fig/porb_dos_%s%s.png' %(save_path, atom_label + 1, structure[atom_label].species), format='png', \
+                pad_inches=1, bbox_inches='tight')
+        except Exception as err:
+            print("an error occured when save the figure")
+            print(err)
+    return plotter
+
 def d_orbs_dos(cdos, structure, atom_label, xlim=None, ylim=None, save_fig=True, save_path=None, \
                 set_title=True, title=None, dxy_exchange=False):
     if dxy_exchange:
